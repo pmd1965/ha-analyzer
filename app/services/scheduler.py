@@ -30,12 +30,19 @@ def start_scheduler(app: Flask) -> None:
 
 
 def _register_all_jobs(scheduler: BackgroundScheduler, app: Flask) -> None:
+    from sqlalchemy.exc import OperationalError
+
     from app.models.scenario import Scenario
 
-    scenarios = Scenario.query.filter(
-        Scenario.is_active.is_(True),
-        Scenario.cron_expression.isnot(None),
-    ).all()
+    try:
+        scenarios = Scenario.query.filter(
+            Scenario.is_active.is_(True),
+            Scenario.cron_expression.isnot(None),
+        ).all()
+    except OperationalError:
+        # Tables don't exist yet (e.g. during flask db upgrade). Skip gracefully.
+        logger.warning("scheduler_job_registration_skipped_db_not_ready")
+        return
 
     for scenario in scenarios:
         add_scenario_job(scheduler, app, scenario)
