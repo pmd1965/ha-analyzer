@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import json
-import smtplib
-from email.message import EmailMessage
-
 import httpx
 import structlog
 from flask import current_app
@@ -58,16 +54,13 @@ def _send_telegram(text: str) -> None:
 
 def _send_email(subject: str, body: str) -> None:
     cfg = current_app.config
-    if not cfg.get("MAIL_PASSWORD"):
-        logger.warning("email_not_configured")
+    api_key = cfg.get("HOVER_MAIL_API_KEY", "")
+    if not api_key:
+        logger.warning("hover_mail_not_configured")
         return
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = cfg["MAIL_FROM"]
-    msg["To"] = cfg["MAIL_TO"]
-    msg.set_content(body)
-    with smtplib.SMTP(cfg["MAIL_SMTP_HOST"], cfg["MAIL_SMTP_PORT"]) as smtp:
-        smtp.starttls()
-        smtp.login(cfg["MAIL_USERNAME"], cfg["MAIL_PASSWORD"])
-        smtp.send_message(msg)
-    logger.info("email_sent", to=cfg["MAIL_TO"])
+    url = f"{cfg['HOVER_MAIL_URL']}/send-mail"
+    payload = {"to": [cfg["MAIL_TO"]], "subject": subject, "body": body}
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(url, json=payload, headers={"X-Api-Key": api_key})
+        resp.raise_for_status()
+    logger.info("email_sent_via_hover_mail", to=cfg["MAIL_TO"])
