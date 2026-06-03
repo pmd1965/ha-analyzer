@@ -39,19 +39,15 @@ COPY --from=css-builder /build/app/static/css/output.css ./app/static/css/output
 COPY --from=css-builder /build/node_modules/htmx.org/dist/htmx.min.js ./app/static/js/htmx.min.js
 COPY --from=css-builder /build/node_modules/alpinejs/dist/cdn.min.js ./app/static/js/alpine.min.js
 
+COPY docker/entrypoint.sh ./entrypoint.sh
+
 RUN mkdir -p /data/db \
- && chown -R app:app . /data
+ && chown -R app:app . /data \
+ && chmod +x entrypoint.sh
 USER app
 
 EXPOSE 8104
 
 # Single worker is mandatory — APScheduler must not be duplicated across workers.
-CMD ["gunicorn", \
-     "--workers", "1", \
-     "--worker-class", "gthread", \
-     "--threads", "8", \
-     "--bind", "0.0.0.0:8104", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info", \
-     "app:create_app()"]
+# entrypoint.sh runs flask db upgrade before gunicorn starts.
+ENTRYPOINT ["./entrypoint.sh"]
