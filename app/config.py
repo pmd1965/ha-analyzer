@@ -44,7 +44,7 @@ class DevelopmentConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
-    SESSION_COOKIE_SECURE = True
+    # SESSION_COOKIE_SECURE intentionally omitted — LAN-only HTTP, no Cloudflare Tunnel.
     SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict] = {
         **BaseConfig.SQLALCHEMY_ENGINE_OPTIONS,
         "pool_pre_ping": True,
