@@ -42,7 +42,7 @@ def run_analysis(scenario_id: int, trigger: str = "manual") -> AnalysisResult:
     logger.info("analysis_started", scenario_id=scenario_id, trigger=trigger)
 
     readings = get_entity_data(
-        scenario.entity_ids,
+        scenario.entity_ids,   # may contain "entity_id::field_name" specs
         scenario.time_window_hours,
         scenario.aggregate_window,
     )
@@ -98,7 +98,7 @@ def run_analysis(scenario_id: int, trigger: str = "manual") -> AnalysisResult:
 def _format_entity_summary(readings: list[EntityReading]) -> str:
     lines: list[str] = []
     for r in readings:
-        lines.append(f"Entity: {r.entity_id} ({r.friendly_name})")
+        lines.append(f"Entity: {r.label} ({r.friendly_name})")
         lines.append(f"  Domain: {r.domain} | Unit: {r.unit or 'N/A'} | Readings: {len(r.values)}")
         if r.min_val is not None:
             lines.append(
