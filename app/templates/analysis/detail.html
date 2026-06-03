@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Analysis #{{ result.id }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('analysis.list_results') }}" class="text-sm text-blue-600 hover:underline">← All results</a>
+</div>
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">{{ result.scenario.name }}</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      Run {{ result.run_at.strftime('%d %B %Y at %H:%M UTC') }}
+      · trigger: {{ result.trigger }}
+    </p>
+  </div>
+  <div class="flex gap-2 items-center shrink-0">
+    {% if result.anomaly_detected %}
+      <span class="badge-red text-base px-3 py-1">Anomaly</span>
+    {% else %}
+      <span class="badge-green text-base px-3 py-1">Normal</span>
+    {% endif %}
+    <span class="badge-{% if result.severity == 'high' %}red{% elif result.severity == 'medium' %}orange{% elif result.severity == 'low' %}yellow{% else %}gray{% endif %} text-base px-3 py-1">
+      {{ result.severity }}
+    </span>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- LLM Analysis -->
+  <div class="card">
+    <h2 class="text-base font-semibold text-gray-900 mb-3">LLM Analysis</h2>
+    {% if parsed_llm %}
+      <dl class="space-y-3 text-sm">
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Summary</dt>
+          <dd class="mt-1 text-gray-900">{{ parsed_llm.get('summary', '—') }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Details</dt>
+          <dd class="mt-1 text-gray-700 leading-relaxed">{{ parsed_llm.get('details', '—') }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Recommended Action</dt>
+          <dd class="mt-1 text-gray-700">{{ parsed_llm.get('recommended_action', '—') }}</dd>
+        </div>
+        <div class="flex gap-4">
+          <div>
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Severity</dt>
+            <dd class="mt-1">{{ parsed_llm.get('severity', '—') }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Confidence</dt>
+            <dd class="mt-1">
+              {% set conf = parsed_llm.get('confidence', 0) %}
+              {{ "%.0f%%"|format(conf * 100) }}
+            </dd>
+          </div>
+        </div>
+      </dl>
+    {% else %}
+      <pre class="text-xs text-gray-700 bg-gray-50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap">{{ result.llm_response }}</pre>
+    {% endif %}
+  </div>
+
+  <!-- Notification status + Scenario info -->
+  <div class="space-y-4">
+    <div class="card">
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Notification</h2>
+      {% if result.anomaly_detected %}
+        {% if result.notification_sent %}
+          <p class="text-sm text-green-700">✓ Telegram + email sent</p>
+        {% elif result.notification_error %}
+          <p class="text-sm text-red-600">Failed: {{ result.notification_error }}</p>
+        {% else %}
+          <p class="text-sm text-gray-500">Not sent (alert_on_anomaly disabled or no anomaly)</p>
+        {% endif %}
+      {% else %}
+        <p class="text-sm text-gray-500">No alert — no anomaly detected</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Scenario Config</h2>
+      <dl class="text-xs space-y-1">
+        <div class="flex gap-2">
+          <dt class="text-gray-500 w-32 shrink-0">Entities:</dt>
+          <dd class="text-gray-700 font-mono">{{ result.scenario.entity_ids | join(', ') }}</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="text-gray-500 w-32 shrink-0">Time window:</dt>
+          <dd class="text-gray-700">{{ result.scenario.time_window_hours }}h</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="text-gray-500 w-32 shrink-0">Aggregation:</dt>
+          <dd class="text-gray-700">{{ result.scenario.aggregate_window }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Data snapshot -->
+  {% if result.data_snapshot %}
+    <div class="card lg:col-span-2">
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Entity Data Sent to LLM</h2>
+      <pre class="text-xs text-gray-700 bg-gray-50 rounded p-3 overflow-auto max-h-80 whitespace-pre-wrap">{{ result.data_snapshot }}</pre>
+    </div>
+  {% endif %}
+
+  <!-- Raw LLM JSON -->
+  <div class="card lg:col-span-2">
+    <details>
+      <summary class="text-sm font-medium text-gray-700 cursor-pointer select-none">Raw LLM Response (JSON)</summary>
+      <pre class="mt-2 text-xs text-gray-600 bg-gray-50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap">{{ result.llm_response }}</pre>
+    </details>
+  </div>
+
+</div>
+{% endblock %}

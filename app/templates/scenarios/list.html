@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Scenarios{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Analysis Scenarios</h1>
+  <a href="{{ url_for('scenarios.new') }}" class="btn-primary">+ New Scenario</a>
+</div>
+
+{% if scenarios %}
+  <div class="space-y-4">
+    {% for s in scenarios %}
+      <div class="card">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-base font-semibold text-gray-900">{{ s.name }}</h2>
+              {% if not s.is_active %}<span class="badge-gray">inactive</span>{% endif %}
+              {% if s.cron_expression %}<span class="badge-blue">{{ s.cron_expression }}</span>{% endif %}
+              {% if s.alert_on_anomaly %}<span class="badge-orange">alerts on</span>{% endif %}
+            </div>
+            {% if s.description %}
+              <p class="text-sm text-gray-500 mt-1">{{ s.description }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-400 mt-1">
+              {{ s.entity_ids | length }} entities · {{ s.time_window_hours }}h window · {{ s.aggregate_window }} aggregation
+            </p>
+            {% set last = s.last_result %}
+            {% if last %}
+              <p class="text-xs text-gray-500 mt-1">
+                Last run: {{ last.run_at.strftime('%d %b %Y %H:%M') }} —
+                {% if last.anomaly_detected %}
+                  <span class="text-red-600 font-medium">Anomaly ({{ last.severity }})</span>
+                {% else %}
+                  <span class="text-green-700">Normal</span>
+                {% endif %}
+              </p>
+            {% endif %}
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <form method="post" action="{{ url_for('scenarios.run', scenario_id=s.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn-primary btn-sm" title="Run analysis now">Run</button>
+            </form>
+            <a href="{{ url_for('scenarios.edit', scenario_id=s.id) }}" class="btn-secondary btn-sm">Edit</a>
+            <form method="post" action="{{ url_for('scenarios.delete', scenario_id=s.id) }}"
+                  onsubmit="return confirm('Delete scenario and all its results?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn-danger btn-sm">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card text-center py-12">
+    <p class="text-gray-500 mb-4">No scenarios yet. Create one to start analysing your home data.</p>
+    <a href="{{ url_for('scenarios.new') }}" class="btn-primary">Create your first scenario</a>
+  </div>
+{% endif %}
+{% endblock %}

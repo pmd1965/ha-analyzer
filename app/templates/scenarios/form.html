@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if scenario else 'New' }} Scenario{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">
+    {{ 'Edit Scenario' if scenario else 'New Scenario' }}
+  </h1>
+
+  <form method="post" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="card space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Basic Info</h2>
+
+      <div>
+        <label class="form-label" for="name">Name *</label>
+        <input class="form-input" id="name" name="name" type="text" required
+               value="{{ scenario.name if scenario else '' }}" placeholder="e.g. Living Room Heating Check">
+      </div>
+
+      <div>
+        <label class="form-label" for="description">Description</label>
+        <input class="form-input" id="description" name="description" type="text"
+               value="{{ scenario.description if scenario else '' }}"
+               placeholder="What does this scenario monitor?">
+      </div>
+
+      <div class="flex gap-6">
+        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input type="checkbox" name="is_active" class="rounded border-gray-300"
+                 {{ 'checked' if not scenario or scenario.is_active else '' }}>
+          Active (runs on schedule)
+        </label>
+        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input type="checkbox" name="alert_on_anomaly" class="rounded border-gray-300"
+                 {{ 'checked' if not scenario or scenario.alert_on_anomaly else '' }}>
+          Alert on anomaly (Telegram + email)
+        </label>
+      </div>
+    </div>
+
+    <div class="card space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Data Query</h2>
+
+      <div>
+        <label class="form-label" for="entity_ids">
+          Entity IDs
+          <span class="text-gray-400 font-normal">(one per line — from your HA InfluxDB bucket)</span>
+        </label>
+        <textarea class="form-textarea h-32" id="entity_ids" name="entity_ids"
+                  placeholder="sensor.living_room_temperature&#10;climate.living_room&#10;sensor.outdoor_temperature">{{ (scenario.entity_ids | join('\n')) if scenario else '' }}</textarea>
+        {% if entity_ids %}
+          <details class="mt-2 text-xs text-gray-500">
+            <summary class="cursor-pointer hover:text-gray-700">
+              {{ entity_ids | length }} entities available in InfluxDB (click to browse)
+            </summary>
+            <div class="mt-2 max-h-48 overflow-y-auto bg-gray-50 rounded p-2 font-mono space-y-0.5">
+              {% for eid in entity_ids %}
+                <div class="cursor-pointer hover:text-blue-600 hover:bg-blue-50 px-1 rounded"
+                     x-on:click="
+                       let ta = document.getElementById('entity_ids');
+                       let val = ta.value;
+                       ta.value = val ? val + '\n' + '{{ eid }}' : '{{ eid }}';
+                     ">{{ eid }}</div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label" for="time_window_hours">Time window (hours)</label>
+          <input class="form-input" id="time_window_hours" name="time_window_hours" type="number"
+                 min="1" max="168" value="{{ scenario.time_window_hours if scenario else 24 }}">
+        </div>
+        <div>
+          <label class="form-label" for="aggregate_window">Aggregation window</label>
+          <select class="form-input" id="aggregate_window" name="aggregate_window">
+            {% for opt in ['5m', '10m', '15m', '30m', '1h', '2h'] %}
+              <option value="{{ opt }}"
+                {{ 'selected' if scenario and scenario.aggregate_window == opt else ('selected' if not scenario and opt == '30m' else '') }}>
+                {{ opt }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Schedule</h2>
+      <div>
+        <label class="form-label" for="cron_expression">
+          Cron expression
+          <span class="text-gray-400 font-normal">(leave blank for manual / API only)</span>
+        </label>
+        <input class="form-input font-mono" id="cron_expression" name="cron_expression" type="text"
+               value="{{ scenario.cron_expression if scenario else '' }}"
+               placeholder="0 7 * * *  (07:00 UTC daily)">
+        <p class="mt-1 text-xs text-gray-400">Examples: <code>0 7 * * *</code> daily at 07:00 UTC · <code>0 */6 * * *</code> every 6 hours</p>
+      </div>
+    </div>
+
+    <div class="card space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Prompt Template</h2>
+      <p class="text-xs text-gray-500">
+        Placeholders: <code>{scenario_name}</code> <code>{time_window}</code> <code>{run_at}</code>
+        <code>{entity_summary}</code> <code>{context}</code>
+      </p>
+      <textarea class="form-textarea h-64 text-xs" name="prompt_template">{{ scenario.prompt_template if scenario else default_prompt }}</textarea>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary">
+        {{ 'Save Changes' if scenario else 'Create Scenario' }}
+      </button>
+      <a href="{{ url_for('scenarios.list_scenarios') }}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

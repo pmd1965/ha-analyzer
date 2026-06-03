@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Analysis Results{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Analysis Results</h1>
+</div>
+
+<!-- Filters -->
+<form method="get" class="flex gap-3 mb-4 items-end flex-wrap">
+  <div>
+    <label class="form-label text-xs" for="scenario_id">Scenario</label>
+    <select id="scenario_id" name="scenario_id" class="form-input text-sm">
+      <option value="">All scenarios</option>
+      {% for s in scenarios %}
+        <option value="{{ s.id }}" {{ 'selected' if current_scenario_id == s.id else '' }}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-0.5">
+    <input type="checkbox" name="anomaly_only" value="1" class="rounded border-gray-300"
+           {{ 'checked' if anomaly_only else '' }}>
+    Anomalies only
+  </label>
+  <button type="submit" class="btn-secondary btn-sm">Filter</button>
+  {% if current_scenario_id or anomaly_only %}
+    <a href="{{ url_for('analysis.list_results') }}" class="btn-secondary btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+{% if results %}
+  <div class="card overflow-hidden p-0">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b">
+        <tr class="text-left text-xs text-gray-500">
+          <th class="px-4 py-3">Scenario</th>
+          <th class="px-4 py-3">Result</th>
+          <th class="px-4 py-3">Severity</th>
+          <th class="px-4 py-3 hidden sm:table-cell">Summary</th>
+          <th class="px-4 py-3 hidden md:table-cell">Trigger</th>
+          <th class="px-4 py-3">Run at</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for r in results %}
+          <tr class="hover:bg-gray-50 {% if r.anomaly_detected %}bg-red-50{% endif %}">
+            <td class="px-4 py-3">
+              <a href="{{ url_for('analysis.detail', result_id=r.id) }}"
+                 class="text-blue-600 hover:underline font-medium">{{ r.scenario.name }}</a>
+            </td>
+            <td class="px-4 py-3">
+              {% if r.anomaly_detected %}
+                <span class="badge-red">Anomaly</span>
+              {% else %}
+                <span class="badge-green">Normal</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <span class="badge-{% if r.severity == 'high' %}red{% elif r.severity == 'medium' %}orange{% elif r.severity == 'low' %}yellow{% else %}gray{% endif %}">
+                {{ r.severity }}
+              </span>
+            </td>
+            <td class="px-4 py-3 hidden sm:table-cell text-gray-600 max-w-xs truncate">
+              {{ r.summary or '—' }}
+            </td>
+            <td class="px-4 py-3 hidden md:table-cell text-gray-500">{{ r.trigger }}</td>
+            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+              {{ r.run_at.strftime('%d %b %H:%M') }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+    <div class="mt-4 flex gap-2 justify-center text-sm">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('analysis.list_results', page=pagination.prev_num, scenario_id=current_scenario_id, anomaly_only=1 if anomaly_only else '') }}"
+           class="btn-secondary btn-sm">← Prev</a>
+      {% endif %}
+      <span class="text-gray-500 py-1.5">Page {{ pagination.page }} / {{ pagination.pages }}</span>
+      {% if pagination.has_next %}
+        <a href="{{ url_for('analysis.list_results', page=pagination.next_num, scenario_id=current_scenario_id, anomaly_only=1 if anomaly_only else '') }}"
+           class="btn-secondary btn-sm">Next →</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% else %}
+  <div class="card text-center py-12">
+    <p class="text-gray-500">No analysis results found.</p>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+  <a href="{{ url_for('scenarios.new') }}" class="btn-primary">+ New Scenario</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- Recent Anomalies -->
+  <div class="card">
+    <h2 class="text-base font-semibold text-gray-900 mb-3">Recent Anomalies</h2>
+    {% if recent_anomalies %}
+      <ul class="divide-y divide-gray-100">
+        {% for r in recent_anomalies %}
+          <li class="py-2 flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <a href="{{ url_for('analysis.detail', result_id=r.id) }}"
+                 class="text-sm font-medium text-blue-600 hover:underline truncate block">
+                {{ r.scenario.name }}
+              </a>
+              <p class="text-xs text-gray-500 truncate">{{ r.summary or "No summary" }}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="badge-{% if r.severity == 'high' %}red{% elif r.severity == 'medium' %}orange{% else %}yellow{% endif %}">
+                {{ r.severity }}
+              </span>
+              <span class="text-xs text-gray-400">{{ r.run_at.strftime('%d %b %H:%M') }}</span>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+      <a href="{{ url_for('analysis.list_results', anomaly_only=1) }}"
+         class="mt-3 text-xs text-blue-600 hover:underline block">View all anomalies →</a>
+    {% else %}
+      <p class="text-sm text-gray-500">No anomalies detected yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Scenarios -->
+  <div class="card">
+    <h2 class="text-base font-semibold text-gray-900 mb-3">Scenarios</h2>
+    {% if scenarios %}
+      <ul class="divide-y divide-gray-100">
+        {% for s in scenarios %}
+          <li class="py-2 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <span class="text-sm font-medium text-gray-900">{{ s.name }}</span>
+              {% if s.cron_expression %}
+                <span class="ml-2 badge-blue">{{ s.cron_expression }}</span>
+              {% endif %}
+              {% if not s.is_active %}
+                <span class="ml-1 badge-gray">inactive</span>
+              {% endif %}
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <form method="post" action="{{ url_for('scenarios.run', scenario_id=s.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-primary btn-sm">Run</button>
+              </form>
+              <a href="{{ url_for('scenarios.edit', scenario_id=s.id) }}" class="btn-secondary btn-sm">Edit</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-gray-500">No scenarios configured yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Recent Runs -->
+  <div class="card lg:col-span-2">
+    <h2 class="text-base font-semibold text-gray-900 mb-3">Recent Runs</h2>
+    {% if recent_runs %}
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-gray-500 border-b">
+            <th class="pb-2 pr-4">Scenario</th>
+            <th class="pb-2 pr-4">Result</th>
+            <th class="pb-2 pr-4">Severity</th>
+            <th class="pb-2 pr-4">Trigger</th>
+            <th class="pb-2">Run at</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for r in recent_runs %}
+            <tr>
+              <td class="py-2 pr-4">
+                <a href="{{ url_for('analysis.detail', result_id=r.id) }}"
+                   class="text-blue-600 hover:underline">{{ r.scenario.name }}</a>
+              </td>
+              <td class="py-2 pr-4">
+                {% if r.anomaly_detected %}
+                  <span class="badge-red">Anomaly</span>
+                {% else %}
+                  <span class="badge-green">Normal</span>
+                {% endif %}
+              </td>
+              <td class="py-2 pr-4">
+                <span class="badge-{% if r.severity == 'high' %}red{% elif r.severity == 'medium' %}orange{% elif r.severity == 'low' %}yellow{% else %}gray{% endif %}">
+                  {{ r.severity }}
+                </span>
+              </td>
+              <td class="py-2 pr-4 text-gray-500">{{ r.trigger }}</td>
+              <td class="py-2 text-gray-500">{{ r.run_at.strftime('%d %b %H:%M') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a href="{{ url_for('analysis.list_results') }}" class="mt-3 text-xs text-blue-600 hover:underline block">View all →</a>
+    {% else %}
+      <p class="text-sm text-gray-500">No analysis runs yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

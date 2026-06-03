@@ -1,0 +1,31 @@
+name: ha-analyzer
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: ha-analyzer:latest
+    container_name: ha-analyzer
+    restart: unless-stopped
+    ports:
+      - "8104:8104"
+    env_file: .env
+    volumes:
+      - ./data/db:/data/db
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8104/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - default
+      - influx-net
+
+networks:
+  default:
+    name: ha-analyzer_default
+  influx-net:
+    external: true
+    name: ha-monitoring_default

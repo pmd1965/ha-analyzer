@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+instance/
+*.egg-info/
+dist/
+.venv/
+venv/
+node_modules/
+app/static/css/output.css
+app/static/js/htmx.min.js
+app/static/js/alpine.min.js
+data/
