@@ -1,0 +1,5 @@
+{
+  "extends": ["config:recommended"],
+  "docker-compose": { "enabled": true },
+  "dockerfile": { "enabled": true }
+}
