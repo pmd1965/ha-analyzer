@@ -13,7 +13,7 @@ COPY app/static/css/input.css ./app/static/css/input.css
 RUN npx tailwindcss -i app/static/css/input.css -o app/static/css/output.css --minify
 
 # ── Stage 2: Python runtime ───────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
